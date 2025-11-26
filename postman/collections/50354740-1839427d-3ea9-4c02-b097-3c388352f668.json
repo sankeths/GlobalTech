@@ -1,0 +1,552 @@
+{
+	"info": {
+		"_postman_id": "50354740-1839427d-3ea9-4c02-b097-3c388352f668",
+		"name": "E2E Order Workflow - User Driven",
+		"description": "GlobalTech - Storefront API Catalog",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Browse Products",
+			"item": [
+				{
+					"name": "1.1 Get Products",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "9d324605-90f9-4322-82dc-2e31cda50b48",
+								"exec": [
+									"const template = `",
+									"<style>",
+									"  body { ",
+									"    font-family: system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif; ",
+									"    padding: 16px;",
+									"    color: teal;",
+									"  }",
+									"  .grid {",
+									"    display: flex;",
+									"    flex-wrap: wrap;",
+									"    gap: 16px;",
+									"  }",
+									"  .card {",
+									"    border: 1px solid #eee;",
+									"    border-radius: 8px;",
+									"    padding: 10px;",
+									"    width: 220px;",
+									"    box-shadow: 0 1px 3px rgba(0,0,0,0.08);",
+									"    color: teal;",
+									"",
+									"  }",
+									"  .card img {",
+									"    max-width: 100%;",
+									"    border-radius: 4px;",
+									"    margin-bottom: 8px;",
+									"  }",
+									"  .title { ",
+									"    font-weight: 600; ",
+									"    font-size: 14px;",
+									"  }",
+									"  .price { ",
+									"    font-weight: 500; ",
+									"    margin-top: 4px; ",
+									"    font-size: 16px;",
+									"    color: teal;",
+									"  }",
+									"  .availability {",
+									"    font-size: 12px;",
+									"    margin-top: 6px;",
+									"    padding: 4px 8px;",
+									"    border-radius: 4px;",
+									"    display: inline-block;",
+									"  }",
+									"  .availability.instock {",
+									"    background-color: #e6ffed;",
+									"    color: #22543d;",
+									"  }",
+									"  .availability.outofstock {",
+									"    background-color: #fff5f5;",
+									"    color: #c53030;",
+									"  }",
+									"</style>",
+									"",
+									"<h3>GlobalTech – Product Catalog</h3>",
+									"<div class=\"grid\">",
+									"  {{#each items}}",
+									"    <div class=\"card\">",
+									"      <img src=\"{{imageUrl}}\" alt=\"{{name}}\" />",
+									"      <div class=\"title\">{{name}}</div>",
+									"      <div class=\"price\">$ {{price}}</div>",
+									"      <div class=\"availability {{availabilityClass}}\">",
+									"        {{availabilityText}}",
+									"      </div>",
+									"    </div>",
+									"  {{/each}}",
+									"</div>",
+									"`;",
+									"",
+									"function constructVisualizerPayload() {",
+									"  const res = pm.response.json();",
+									"  const items = (res.items || []).map(item => {",
+									"    return {",
+									"      id: item.id,",
+									"      name: item.name,",
+									"      description: item.description,",
+									"      price: item.price,",
+									"      availability: item.availability,",
+									"      imageUrl: item.imageUrl,",
+									"      availabilityClass: item.availability > 0 ? 'instock' : 'outofstock',",
+									"      availabilityText: item.availability > 0 ? 'AVAILABLE (' + item.availability + ' in stock)' : 'OUT OF STOCK'",
+									"    };",
+									"  });",
+									"  ",
+									"  return { items: items };",
+									"}",
+									"",
+									"pm.visualizer.set(template, constructVisualizerPayload());",
+									"",
+									"const res = pm.response.json();",
+									"const items = res.items || [];",
+									"",
+									"// Initialize workflow-level defaults at the start of a run",
+									"pm.environment.set(\"workflowStatus\", \"SUCCESS\");",
+									"pm.environment.set(\"orderStatus\", \"\");",
+									"pm.environment.set(\"orderReason\", \"\");",
+									"pm.environment.set(\"stopFlow\", false);",
+									"",
+									"// Status & perf",
+									"pm.test(\"Status is 200\", () => {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"At least 4 products returned\", () => {",
+									"  pm.expect(items.length).to.be.at.least(4);",
+									"});",
+									"",
+									"pm.test(\"Response time < 2000ms\", () => {",
+									"  pm.expect(pm.response.responseTime).to.be.below(2000);",
+									"});",
+									"",
+									"pm.test(\"Correlation ID header is present\", () => {",
+									"  pm.expect(pm.request.headers.has(\"X-GlobalTech-TraceId\")).to.be.true;",
+									"});",
+									"",
+									"",
+									"// 1. Read input product ID from environment",
+									"const inputProductId = pm.environment.get(\"inputProductId\");",
+									"console.log(inputProductId)",
+									"",
+									"// 2. Try to find the product matching inputProductId",
+									"let selected = null;",
+									"",
+									"if (inputProductId) {",
+									"    selected = items.find(p => p.id === inputProductId);",
+									"    console.log(selected)",
+									"}",
+									"",
+									"// 3. If not found (or no input), fallback to first in-stock product",
+									"if (!selected) {",
+									"    selected = items.find(p => p.availability > 0) || items[0];",
+									"}",
+									"",
+									"pm.environment.set(\"selectedProductId\", selected.id);",
+									"console.log(selected.id)",
+									"pm.environment.set(\"selectedProductPrice\", selected.price);",
+									"pm.environment.set(\"selectedAvailability\", selected.availability);",
+									"if (selected.availability <= 0){",
+									"    pm.environment.set(\"availabilityFilter\", \"out of stock\");",
+									"    pm.environment.set(\"selectedQuantity\", 0);",
+									"    pm.execution.setNextRequest(\"2.2 Post Order - Out of Stock\")",
+									"}else{",
+									"    pm.environment.set(\"availabilityFilter\", \"in stock\");",
+									"    pm.environment.set(\"selectedQuantity\", 1);",
+									"    pm.execution.setNextRequest(\"2.1 Post Order - In Stock\")",
+									"}",
+									"",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"id": "50354740-7e4c62ab-e48f-4844-b5e1-cb0c930a14d2",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/products?availability={{availabilityFilter}}",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"products"
+							],
+							"query": [
+								{
+									"key": "availability",
+									"value": "{{availabilityFilter}}"
+								}
+							]
+						},
+						"description": "## Overview\n\nThis endpoint retrieves the product catalog from the GlobalTech storefront API. It supports optional filtering by product availability to help you find in-stock or out-of-stock items.\n\n## Query Parameters\n\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| `availability` | string | No | Filters products based on stock availability. Uses the `{{availabilityFilter}}` variable to determine which products to return. |\n\n## Variables Used\n\n- **`{{url}}`** - Base URL for the GlobalTech API endpoint\n- **`{{availabilityFilter}}`** - Filter value for product availability (e.g., to show only in-stock or out-of-stock products)\n\n## Response\n\nReturns a JSON object containing an array of product items. Each product includes:\n\n- `id` - Unique product identifier\n- `name` - Product name\n- `description` - Brief product description\n- `price` - Product price (numeric)\n- `availability` - Stock quantity available\n- `imageUrl` - URL to the product image\n\n**Example Response:**\n```json\n{\n  \"items\": [\n    {\n      \"id\": \"P-1001\",\n      \"name\": \"Running Shoes\",\n      \"description\": \"Lightweight daily trainer.\",\n      \"price\": 79.99,\n      \"availability\": 12,\n      \"imageUrl\": \"https://images.unsplash.com/...\"\n    }\n  ]\n}\n```\n\n## Visualization\n\nThis request includes a custom visualizer that renders the product catalog in an attractive card-based grid layout. Each product card displays:\n- Product image\n- Product name and price\n- Availability status with color-coded badges (green for in-stock, red for out-of-stock)\n\n## Automated Tests\n\nThe request includes the following automated test assertions:\n- ✓ Status code is 200\n- ✓ Response time is less than 2000ms\n- ✓ At least 4 products are returned\n- ✓ Correlation ID header is present in the response"
+					},
+					"response": []
+				}
+			],
+			"id": "50354740-dc78cdec-a706-4a0f-b472-a8847b32b868"
+		},
+		{
+			"name": "2. Place Order",
+			"item": [
+				{
+					"name": "2.1 Post Order - In Stock",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "b77a2ad2-c05b-4d8c-b741-164d82ffd36c",
+								"exec": [
+									"// Existing tests from mock:",
+									"pm.test(\"Status is 200\", () => {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const body = pm.response.json();",
+									"pm.environment.set(\"orderStatus\", body.status || \"UNKNOWN\");",
+									"pm.environment.set(\"orderReason\", body.reason || \"\");",
+									"",
+									"// Functional",
+									"pm.test(\"Order has a status\", () => {",
+									"  pm.expect(body).to.have.property(\"status\");",
+									"});",
+									"",
+									"// HAPPY PATH ASSERTION",
+									"pm.test(\"Order is approved\", () => {",
+									"  pm.expect(body.status).to.equal(\"APPROVED\");",
+									"});",
+									"",
+									"// Performance",
+									"pm.test(\"Order response < 2000ms\", () => {",
+									"  pm.expect(pm.response.responseTime).to.be.below(2000);",
+									"});",
+									"",
+									"// Keep workflowStatus as SUCCESS if all good",
+									"pm.environment.set(\"workflowStatus\", \"SUCCESS\");",
+									"",
+									"// Conditional logic based on response data",
+									"if (body.status === \"APPROVED\") {",
+									"  pm.environment.set(\"workflowStatus\", \"SUCCESS\"); // still provisional",
+									"  console.log(\"Order approved, proceeding to payment.\");",
+									"  //postman.setNextRequest(\"4. Take Payment\");",
+									"  pm.execution.setNextRequest(\"3.1 Take Payment\")",
+									"} else {",
+									"  pm.environment.set(\"workflowStatus\", \"FAILED\");",
+									"  console.log(\"Order not approved, skipping payment and going to summary.\");",
+									"  //postman.setNextRequest(\"5. Workflow Summary\");",
+									"  pm.execution.setNextRequest(\"4.1 Workflow Summary\")",
+									"}",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "979e01dd-7e49-4818-a4d6-bade5f3fb3e4",
+								"exec": [
+									"// Happy path: force mock to return \"Order Approved\" example",
+									"pm.request.headers.add({",
+									"  key: \"x-mock-response-name\",",
+									"  value: \"Approved\"",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"id": "50354740-d1bcbb4b-f630-42f3-8090-1453cb1d553a",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"productId\": \"{{selectedProductId}}\",\n  \"quantity\": {{selectedQuantity}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/orders",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"orders"
+							]
+						},
+						"description": "# Create Order - In Stock Product\n\n## Overview\nThis endpoint creates an order for a selected product. It validates product availability and quantity, then returns an order confirmation with approval status. This request is part of an end-to-end order workflow that demonstrates the complete purchase process.\n\n## Request Details\n\n**Method:** `POST`  \n**Endpoint:** `{{url}}/orders`\n\n### Request Body Parameters\n\nThe request accepts a JSON payload with the following parameters:\n\n- **productId** (string, required): The unique identifier of the product to order. Uses the `{{selectedProductId}}` variable, which is typically set by the \"Get Products\" request earlier in the workflow.\n  \n- **quantity** (number, required): The number of units to order. Uses the `{{selectedQuantity}}` variable, which should be set based on product availability and customer requirements.\n\n**Example Request Body:**\n```json\n{\n  \"productId\": \"{{selectedProductId}}\",\n  \"quantity\": {{selectedQuantity}}\n}\n```\n\n## Response Format\n\nThe endpoint returns a JSON object with the following fields:\n\n- **orderId** (string): Unique identifier for the created order (e.g., \"ORD-90001\")\n- **status** (string): Order approval status - typically \"APPROVED\" or \"REJECTED\"\n- **reason** (string|null): Explanation if order is rejected, null if approved\n\n**Example Success Response (200 OK):**\n```json\n{\n  \"orderId\": \"ORD-90001\",\n  \"status\": \"APPROVED\",\n  \"reason\": null\n}\n```\n\n## Success Criteria\n\n- HTTP status code: `200 OK`\n- Response contains `status` field\n- Order status is `APPROVED` for in-stock products\n- Response time is under 2000ms\n\n## Workflow Context\n\nThis request is the second step in the E2E Order Workflow:\n\n1. **Get Products** → **2. Post Order** → 3. Take Payment → 4. Workflow Summary\n\n### Conditional Routing Logic\n\nThe request implements intelligent workflow routing based on the order approval status:\n\n- **If order status is APPROVED**: Workflow proceeds to \"4. Take Payment\" to process the transaction\n- **If order is NOT approved**: Workflow skips payment and jumps directly to \"5. Workflow Summary\" to report the failure\n\nThis conditional logic ensures that payment processing only occurs for approved orders, preventing unnecessary API calls and providing a realistic order flow.\n\n## Variables\n\n### Variables Used (Input)\n- `url`: Base API URL for the storefront service\n- `selectedProductId`: Product ID selected from the product catalog\n- `selectedQuantity`: Desired order quantity\n\n### Variables Set (Output)\n- `orderStatus`: The approval status returned by the API (e.g., \"APPROVED\", \"REJECTED\")\n- `orderReason`: Reason for rejection if order is not approved, empty string if approved\n- `workflowStatus`: Overall workflow state - set to \"SUCCESS\" if approved, \"FAILED\" if rejected\n\n## Test Assertions\n\nThis request includes automated tests that validate:\n\n1. **Status Code Validation**: Confirms response status is 200 OK\n2. **Response Structure**: Verifies the response contains a `status` property\n3. **Happy Path Assertion**: Ensures order status equals \"APPROVED\" for in-stock scenarios\n4. **Performance Check**: Validates response time is below 2000ms threshold\n\n## Mock Server Configuration\n\nThe pre-request script forces the mock server to return the \"Approved\" example response by setting the `x-mock-response-name` header. This ensures consistent happy-path testing during development and demonstration scenarios."
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Post Order - Out of Stock",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "b77a2ad2-c05b-4d8c-b741-164d82ffd36c",
+								"exec": [
+									"pm.test(\"Status is 403\", () => {",
+									"  pm.response.to.have.status(403);",
+									"});",
+									"",
+									"const body = pm.response.json();",
+									"pm.environment.set(\"orderStatus\", body.status || \"UNKNOWN\");",
+									"pm.environment.set(\"orderReason\", body.reason || \"\");",
+									"",
+									"// Functional check",
+									"pm.test(\"Order is rejected when out of stock\", () => {",
+									"  pm.expect(body.status).to.equal(\"REJECTED\");",
+									"  pm.expect(body.reason).to.equal(\"Insufficient inventory\");",
+									"});",
+									"",
+									"// Perf",
+									"pm.test(\"Order response < 2000ms\", () => {",
+									"  pm.expect(pm.response.responseTime).to.be.below(2000);",
+									"});",
+									"",
+									"// Conditional logic based on response data",
+									"if (body.status === \"APPROVED\") {",
+									"  pm.environment.set(\"workflowStatus\", \"SUCCESS\"); // still provisional",
+									"  console.log(\"Order approved, proceeding to payment.\");",
+									"  pm.execution.setNextRequest(\"3.1 Take Payment\");",
+									"} else {",
+									"  pm.environment.set(\"workflowStatus\", \"FAILED\");",
+									"  console.log(\"Order not approved, skipping payment and going to summary.\");",
+									"  pm.execution.setNextRequest(\"4.1 Workflow Summary\");",
+									"}",
+									"",
+									"",
+									"// Mark workflow as FAILED",
+									"pm.environment.set(\"workflowStatus\", \"FAILED\");",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "979e01dd-7e49-4818-a4d6-bade5f3fb3e4",
+								"exec": [
+									"// Happy path: force mock to return \"Order Approved\" example",
+									"pm.request.headers.add({",
+									"  key: \"x-mock-response-name\",",
+									"  value: \"Rejected\"",
+									"});"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"id": "50354740-378d0e4a-0e64-4e9d-8a26-1f5fcce3d6eb",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"productId\": \"{{selectedProductId}}\",\n  \"quantity\": {{selectedQuantity}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/orders",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"orders"
+							]
+						},
+						"description": "# Create Order\n\nCreates a new order for a specified product. This endpoint is part of an end-to-end order workflow that validates product availability and processes orders.\n\n## Request Body Parameters\n\n- **productId** (string, required): The unique identifier of the product to order. Uses the `{{selectedProductId}}` variable.\n- **quantity** (number, required): The quantity of the product to order. Uses the `{{selectedQuantity}}` variable.\n\n## Expected Responses\n\n### Success (200/201)\nOrder has been approved successfully and will be processed.\n\n**Response Fields:**\n- `status`: \"APPROVED\"\n- Additional order details (order ID, confirmation, etc.)\n\n### Rejected (403)\nOrder was rejected due to business rules or constraints.\n\n**Response Fields:**\n- `status`: \"REJECTED\"\n- `reason`: Explanation for rejection (e.g., \"Insufficient inventory\")\n\n## Notes\n\n- This request includes a pre-request script that can force specific mock responses using the `x-mock-response-name` header for testing purposes.\n- Post-response scripts validate the response status, extract order status and reason to environment variables, and conditionally route to the next step in the workflow.\n- Part of the E2E Order Workflow collection for testing complete order processing scenarios."
+					},
+					"response": []
+				}
+			],
+			"id": "50354740-d6d81578-3423-4a43-a5ee-2681eb239702"
+		},
+		{
+			"name": "3. Payments",
+			"item": [
+				{
+					"name": "3.1 Take Payment",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "624a292c-82fc-4c0b-b62d-a3ad4f1add1c",
+								"exec": [
+									"pm.test(\"Status is 200\", () => {",
+									"  pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const body = pm.response.json();",
+									"",
+									"pm.environment.set(\"paymentStatus\", body.status || \"UNKNOWN\");",
+									"pm.environment.set(\"paymentReason\", body.reason || \"\");",
+									"",
+									"// Basic functional check",
+									"pm.test(\"Payment has a status\", () => {",
+									"  pm.expect(body).to.have.property(\"status\");",
+									"});",
+									"",
+									"// Performance check",
+									"pm.test(\"Payment response < 2000ms\", () => {",
+									"  pm.expect(pm.response.responseTime).to.be.below(2000);",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"id": "50354740-cdc24b20-b341-4ac1-a00a-71264bf8065e",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"orderId\": \"{{selectedProductId}}\",\n  \"amount\": {{selectedProductPrice}},\n  \"method\": \"Swipe on Delivery\"\n}\n"
+						},
+						"url": {
+							"raw": "{{url}}/payments",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"payments"
+							]
+						},
+						"description": "# Payment Processing Endpoint\n\nThis endpoint processes payment for an order in the E2E order workflow. It accepts order details and payment information, then returns a payment confirmation.\n\n## Overview\n\nThe payment endpoint handles the transaction processing for orders. It's designed to work with various payment methods and integrates seamlessly into the end-to-end order fulfillment workflow.\n\n## Request Body Parameters\n\nThe request accepts a JSON payload with the following parameters:\n\n- **orderId** (string, required): The unique identifier of the order to process payment for. This uses the `{{selectedProductId}}` variable which should be set from the previous order creation step.\n\n- **amount** (number, required): The payment amount to be charged. This uses the `{{selectedProductPrice}}` variable which contains the total order amount.\n\n- **method** (string, required): The payment method to be used for the transaction. Currently configured as \"Swipe on Delivery\" for card-on-delivery payments.\n\n## Response Format\n\nOn successful payment processing, the endpoint returns a **200 OK** status with the following JSON structure:\n\n```json\n{\n  \"paymentId\": \"PAY-50001\",\n  \"status\": \"Success\",\n  \"reason\": \"Tap/Swipe card on delivery\"\n}\n```\n\n**Response Fields:**\n- **paymentId**: Unique identifier for the payment transaction\n- **status**: Payment processing status (e.g., \"Success\")\n- **reason**: Additional details about the payment method or transaction\n\n## Variables Used\n\nThis request relies on the following variables:\n\n- `{{url}}`: Base URL for the API endpoint\n- `{{selectedProductId}}`: Order ID from the previous workflow step\n- `{{selectedProductPrice}}`: Order amount calculated from product selection\n\n## Usage Notes\n\n- This request is part of the **E2E Order Workflow** collection\n- Ensure that `selectedProductId` and `selectedProductPrice` variables are properly set before executing this request\n- The payment method can be modified in the request body to support different payment types\n- This is typically the 4th step in the order workflow, executed after order creation and before workflow summary"
+					},
+					"response": []
+				}
+			],
+			"id": "50354740-8f088c9b-ca15-4b12-adc3-6e240172d080"
+		},
+		{
+			"name": "4. Reporting",
+			"item": [
+				{
+					"name": "4.1 Workflow Summary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "88724c34-14aa-43e1-9ff0-ef47c67f6ea4",
+								"exec": [
+									"const workflowStatus = pm.environment.get(\"workflowStatus\") || \"UNKNOWN\";",
+									"const orderStatus = pm.environment.get(\"orderStatus\") || \"N/A\";",
+									"const reason = pm.environment.get(\"orderReason\") || \"N/A\";",
+									"",
+									"console.log(\"=== GlobalTech Order Workflow Summary ===\");",
+									"console.log(\"Workflow Status:\", workflowStatus);",
+									"console.log(\"Order Status:\", orderStatus);",
+									"console.log(\"Reason:\", reason);",
+									"",
+									"pm.test(\"Workflow completed successfully\", () => {",
+									"  pm.expect(workflowStatus).to.equal(\"SUCCESS\");",
+									"});",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"id": "50354740-e979a830-76a8-4adc-a407-08309514458f",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}",
+							"host": [
+								"{{url}}"
+							]
+						},
+						"description": "## Purpose\nThis request serves as the final step in the E2E Order Workflow, providing a comprehensive summary of the entire workflow execution. It acts as a validation checkpoint to confirm whether the order workflow completed successfully or encountered issues.\n\n## What It Does\n- Retrieves the workflow execution status from environment variables\n- Displays a summary of the workflow outcome including order status and any reasons for failures\n- Validates the overall workflow success through automated test assertions\n- Logs detailed information to the console for debugging and monitoring purposes\n\n## Environment Variables Used\nThis request reads the following environment variables that are set throughout the workflow:\n\n- **`workflowStatus`**: Overall status of the workflow execution (e.g., \"SUCCESS\", \"FAILED\", \"UNKNOWN\")\n- **`orderStatus`**: The final status of the order (e.g., \"CONFIRMED\", \"CANCELLED\", \"N/A\")\n- **`orderReason`**: Explanation for the workflow outcome, particularly useful when failures occur (e.g., \"Out of stock\", \"Payment failed\", \"N/A\")\n\n## Test Assertion\nThe post-response script includes a critical test that validates workflow completion:\n\n```javascript\npm.test(\"Workflow completed successfully\", () => {\n  pm.expect(workflowStatus).to.equal(\"SUCCESS\");\n});\n```\n\nThis test will **pass** only if `workflowStatus` equals \"SUCCESS\", indicating all workflow steps completed without errors.\n\n## Console Output\nThe request generates a formatted console output showing the GlobalTech Order Workflow Summary:\n\n```\n=== GlobalTech Order Workflow Summary ===\nWorkflow Status: [SUCCESS/FAILED/UNKNOWN]\nOrder Status: [Order status value]\nReason: [Reason for outcome]\n```\n\n## Interpreting Results\n- ✅ **Test Passes**: Workflow completed successfully, order was processed\n- ❌ **Test Fails**: Review the console output to identify which step failed and why\n- Check `orderReason` for specific failure details (e.g., insufficient stock, payment issues)"
+					},
+					"response": []
+				}
+			],
+			"id": "50354740-ca297180-9b2a-4291-a788-b1f04227b0e2"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "71c8fac8-dd1c-4c0b-b23b-a8447722309d",
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					"// Add a correlation ID if not present",
+					"if (!pm.request.headers.has(\"X-GlobalTech-TraceId\")) {",
+					"  pm.request.headers.add({",
+					"    key: \"X-GlobalTech-TraceId\",",
+					"    value: `GT-${Date.now()}`",
+					"  });",
+					"}",
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "57aee483-993a-4676-bb5a-57ead94f89ba",
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
