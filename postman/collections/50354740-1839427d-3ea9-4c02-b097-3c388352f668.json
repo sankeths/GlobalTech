@@ -225,7 +225,7 @@
 									"  pm.expect(body).to.have.property(\"status\");",
 									"});",
 									"",
-									"// HAPPY PATH ASSERTION",
+									"// Order approved",
 									"pm.test(\"Order is approved\", () => {",
 									"  pm.expect(body.status).to.equal(\"APPROVED\");",
 									"});",
