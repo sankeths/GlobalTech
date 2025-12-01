@@ -356,7 +356,7 @@
 							"script": {
 								"id": "979e01dd-7e49-4818-a4d6-bade5f3fb3e4",
 								"exec": [
-									"// Happy path: force mock to return \"Order Approved\" example",
+									"// Happy path: force mock to return \"Rejected\" response",
 									"pm.request.headers.add({",
 									"  key: \"x-mock-response-name\",",
 									"  value: \"Rejected\"",
