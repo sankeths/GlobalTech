@@ -338,7 +338,7 @@
 									"} else {",
 									"  pm.environment.set(\"workflowStatus\", \"FAILED\");",
 									"  console.log(\"Order not approved, skipping payment and going to summary.\");",
-									"  //pm.execution.setNextRequest(\"4.1 Workflow Summary\");",
+									"  pm.execution.setNextRequest(\"4.1 Workflow Summary\");",
 									"}",
 									"",
 									"",
